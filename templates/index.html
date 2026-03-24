@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDA Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            background-color: #FAFAFA; 
+            transition: box-shadow 0.5s ease-in-out;
+        }
+        .stack-item { transition: all 0.2s ease-in-out; }
+
+        @keyframes glow-accept {
+            0%   { box-shadow: inset 0 0 0px rgba(16, 185, 129, 0); }
+            15%  { box-shadow: inset 0 0 200px rgba(16, 185, 129, 0.6); }
+            35%  { box-shadow: inset 0 0 200px rgba(16, 185, 129, 0.6); }
+            100% { box-shadow: inset 0 0 0px rgba(16, 185, 129, 0); }
+        }
+        @keyframes glow-reject {
+            0%   { box-shadow: inset 0 0 0px rgba(244, 63, 94, 0); }
+            15%  { box-shadow: inset 0 0 200px rgba(244, 63, 94, 0.6); }
+            35%  { box-shadow: inset 0 0 200px rgba(244, 63, 94, 0.6); }
+            100% { box-shadow: inset 0 0 0px rgba(244, 63, 94, 0); }
+        }
+        
+        .animate-glow-accept { animation: glow-accept 2.5s ease-out forwards; }
+        .animate-glow-reject { animation: glow-reject 2.5s ease-out forwards; }
+
+        /* Ensure canvas sits on top but doesn't block clicks */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-neutral-800 font-sans antialiased selection:bg-neutral-200 relative overflow-x-hidden">
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16 lg:py-20">
+        
+        <!-- Header -->
+        <header class="text-center mb-10 sm:mb-14">
+            <div class="inline-flex items-center justify-center px-3 py-1 mb-6 rounded-full bg-neutral-100 border border-neutral-200 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+                Simulator Engine
+            </div>
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-neutral-900 mb-3 sm:mb-4 leading-tight">Pushdown Automata</h1>
+            <p class="text-neutral-500 font-medium max-w-md sm:max-w-lg mx-auto text-base sm:text-lg leading-relaxed">Visualize state configurations and stack manipulations step by step.</p>
+        </header>
+
+        <!-- Input Form -->
+        <div class="bg-white rounded-2xl shadow-sm border border-neutral-200/70 p-4 sm:p-6 md:p-8 mb-8 sm:mb-10 md:mb-12">
+            <form id="pda-form" class="space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">Select Language</label>
+
+                        <div class="relative">
+                            <select id="language" class="hidden" required>
+                                <option value="1">L = { aⁿbⁿ : n ≥ 0 }</option>
+                                <option value="2">L = { aⁿb²ⁿ : n ≥ 0 }</option>
+                                <option value="3">L = { aᵐbⁿc⁽ᵐ⁺ⁿ⁾ : m,n ≥ 0 }</option>
+                                <option value="4">L = { aⁿbᵐcᵐdⁿ : m,n ≥ 0 }</option>
+                                <option value="5">L = { wcwᴿ : w ∈ (a+b)* }</option>
+                                <option value="6">L = { wwᴿ : w ∈ (a+b)* }</option>
+                                <option value="7">L = { a^m b^n : m >= n >= 0 }</option>
+                                <option value="8">L = { balanced parentheses }</option>
+                                <option value="9">L = { a^n b^n c^m : n,m >= 0 }</option>
+                                <option value="10">L = { w in {a,b}* : #a = #b }</option>
+                                <option value="11">L = { a^n b^n } U { a^n b^(2n) }</option>
+                            </select>
+
+                            <button
+                                id="language-trigger"
+                                type="button"
+                                class="w-full bg-white border-2 border-neutral-200 text-neutral-900 rounded-xl pl-4 pr-12 py-3.5 text-sm font-medium shadow-sm transition-all duration-200 outline-none hover:border-neutral-400 hover:shadow focus:border-neutral-900 focus:ring-4 focus:ring-neutral-900/10 text-left"
+                                aria-haspopup="listbox"
+                                aria-expanded="false"
+                            >
+                                <span id="language-label">L = { aⁿbⁿ : n ≥ 0 }</span>
+                            </button>
+
+                            <span id="language-chevron" class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 transition-transform duration-200">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </span>
+
+                            <div
+                                id="language-menu"
+                                class="hidden absolute z-50 mt-2 w-full max-h-56 sm:max-h-64 overflow-auto overscroll-contain rounded-xl border border-neutral-200 bg-white shadow-lg"
+                                role="listbox"
+                            >
+                                <button type="button" data-value="1" class="lang-option w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-100">L = { aⁿbⁿ : n ≥ 0 }</button>
+                                <button type="button" data-value="2" class="lang-option w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-100">L = { aⁿb²ⁿ : n ≥ 0 }</button>
+                                <button type="button" data-value="3" class="lang-option w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-100">L = { aᵐbⁿc⁽ᵐ⁺ⁿ⁾ : m,n ≥ 0 }</button>
+                                <button type="button" data-value="4" class="lang-option w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-100">L = { aⁿbᵐcᵐdⁿ : m,n ≥ 0 }</button>
+                                <button type="button" data-value="5" class="lang-option w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-100">L = { wcwᴿ : w ∈ (a+b)* }</button>
+                                <button type="button" data-value="6" class="lang-option w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-100">L = { wwᴿ : w ∈ (a+b)* }</button>
+                                <button type="button" data-value="7" class="lang-option w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-100">L = { a^m b^n : m >= n >= 0 }</button>
+                                <button type="button" data-value="8" class="lang-option w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-100">L = { balanced parentheses }</button>
+                                <button type="button" data-value="9" class="lang-option w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-100">L = { a^n b^n c^m : n,m >= 0 }</button>
+                                <button type="button" data-value="10" class="lang-option w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-100">L = { w in {a,b}* : #a = #b }</button>
+                                <button type="button" data-value="11" class="lang-option w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-100">L = { a^n b^n } U { a^n b^(2n) }</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">String to evaluate</label>
+                        <input type="text" id="input_string" placeholder="e.g., aabb" class="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 placeholder-neutral-400 rounded-xl focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-900 focus:bg-white block p-3.5 sm:p-4 font-mono text-sm transition-colors outline-none">
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                    <button type="submit" class="w-full sm:w-auto text-white bg-neutral-900 hover:bg-neutral-800 focus:ring-4 focus:ring-neutral-900/20 font-semibold rounded-xl text-sm px-6 sm:px-8 py-3.5 transition-all shadow-sm flex items-center justify-center gap-2">
+                        Execute Simulation
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" class="opacity-80" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-container" class="hidden opacity-0 transition-opacity duration-500 ease-in-out">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+                <h2 class="text-xl font-bold tracking-tight text-neutral-900 flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full bg-neutral-900"></div>
+                    Computation Trace
+                </h2>
+                <div id="final-status" class="hidden"></div>
+            </div>
+            
+            <div id="trace-output" class="space-y-5">
+                <!-- Trace steps will be injected here -->
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- Confetti Logic ---
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let confettis = [];
+        let confettiAnimationId = null;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Updated colors: Red, Blue, Green, Yellow
+        const colors = ['#ef4444', '#3b82f6', '#10b981', '#eab308'];
+
+        class Confetti {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                // Start closer to the top edge so they don't take as long to enter and leave
+                this.y = Math.random() * 200 - 200;
+                this.size = Math.random() * 8 + 4;
+                // Increased fall speed so the animation finishes faster
+                this.speedY = Math.random() * 6 + 4;
+                this.speedX = Math.random() * 2 - 1;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.rotation = Math.random() * 360;
+                this.rotationSpeed = Math.random() * 10 - 5;
+            }
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+                this.rotation += this.rotationSpeed;
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation * Math.PI / 180);
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+                ctx.restore();
+            }
+        }
+
+        function spawnConfetti() {
+            confettis = [];
+            cancelAnimationFrame(confettiAnimationId);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Slightly reduced amount of confetti particles
+            for (let i = 0; i < 100; i++) {
+                confettis.push(new Confetti());
+            }
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let active = false;
+            for (let i = 0; i < confettis.length; i++) {
+                confettis[i].update();
+                confettis[i].draw();
+                if (confettis[i].y < canvas.height) {
+                    active = true;
+                }
+            }
+            if (active) {
+                confettiAnimationId = requestAnimationFrame(animateConfetti);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+        // ----------------------
+
+        const languageSelect = document.getElementById('language');
+        const languageTrigger = document.getElementById('language-trigger');
+        const languageLabel = document.getElementById('language-label');
+        const languageMenu = document.getElementById('language-menu');
+        const languageChevron = document.getElementById('language-chevron');
+        const languageOptions = document.querySelectorAll('.lang-option');
+
+        function closeLanguageMenu() {
+            languageMenu.classList.add('hidden');
+            languageTrigger.setAttribute('aria-expanded', 'false');
+            languageChevron.classList.remove('rotate-180');
+        }
+
+        function openLanguageMenu() {
+            languageMenu.classList.remove('hidden');
+            languageTrigger.setAttribute('aria-expanded', 'true');
+            languageChevron.classList.add('rotate-180');
+        }
+
+        languageTrigger.addEventListener('click', () => {
+            if (languageMenu.classList.contains('hidden')) {
+            openLanguageMenu();
+            } else {
+            closeLanguageMenu();
+            }
+        });
+
+        languageOptions.forEach((btn) => {
+            btn.addEventListener('click', () => {
+            const newValue = btn.getAttribute('data-value');
+            languageSelect.value = newValue;
+            languageLabel.textContent = btn.textContent.trim();
+            closeLanguageMenu();
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+            const inside = languageTrigger.contains(e.target) || languageMenu.contains(e.target);
+            if (!inside) closeLanguageMenu();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLanguageMenu();
+        });
+
+        document.getElementById('pda-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const language = document.getElementById('language').value;
+            const input_string = document.getElementById('input_string').value;
+            
+            const resultsContainer = document.getElementById('results-container');
+            const traceOutput = document.getElementById('trace-output');
+            const finalStatus = document.getElementById('final-status');
+            const submitBtn = document.querySelector('button[type="submit"]');
+            const originalBtnContent = submitBtn.innerHTML;
+
+            // Clear states
+            document.body.classList.remove('animate-glow-accept', 'animate-glow-reject');
+            cancelAnimationFrame(confettiAnimationId);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // UI Loading state
+            submitBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...';
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+            
+            resultsContainer.classList.remove('hidden');
+            setTimeout(() => resultsContainer.classList.remove('opacity-0'), 50);
+            
+            finalStatus.classList.add('hidden');
+            traceOutput.innerHTML = '<div class="text-center text-neutral-400 font-mono text-sm py-12 animate-pulse">Initializing state machine...</div>';
+
+            try {
+                const response = await fetch('/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ language, input_string })
+                });
+
+                const data = await response.json();
+                traceOutput.innerHTML = '';
+                
+                data.trace.forEach((step, index) => {
+                    if (step.status) {
+                        finalStatus.classList.remove('hidden');
+                        
+                        void document.body.offsetWidth;
+
+                        if (step.status === 'Accepted') {
+                            finalStatus.innerHTML = '<span class="flex items-center gap-2">Accepted <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></span>';
+                            finalStatus.className = 'px-4 py-1.5 rounded-lg font-mono text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-sm';
+                            
+                            document.body.classList.add('animate-glow-accept');
+                            spawnConfetti(); // Trigger the confetti drop!
+                            
+                        } else {
+                            finalStatus.innerHTML = '<span class="flex items-center gap-2">Rejected <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></span>';
+                            finalStatus.className = 'px-4 py-1.5 rounded-lg font-mono text-sm font-semibold bg-rose-50 text-rose-700 border border-rose-200/80 shadow-sm';
+                            
+                            document.body.classList.add('animate-glow-reject');
+                        }
+                    }
+
+                    if (step.configs && step.configs.length > 0) {
+                        const stepBlock = document.createElement('div');
+                        const isFinal = step.status ? true : false;
+                        stepBlock.className = `bg-white rounded-2xl border ${isFinal ? 'border-neutral-300 shadow-md' : 'border-neutral-200/70 shadow-sm'} overflow-hidden`;
+                        
+                        let headerText = step.message || (isFinal ? `End Execution` : `Step`);
+                        
+                        let configsHtml = step.configs.map((config, idx) => `
+                            <div class="p-5 md:p-6 ${idx > 0 ? 'border-t border-neutral-100' : ''} ${config.info ? 'bg-rose-50/30' : ''}">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div class="flex flex-col">
+                                        <span class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-2">Internal State</span>
+                                        <span class="font-mono text-base bg-neutral-100/80 text-neutral-800 text-center px-4 py-1.5 rounded-lg inline-block w-max border border-neutral-200/80">${config.state}</span>
+                                        ${config.info ? `<span class="text-xs text-rose-600 mt-3 font-semibold flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${config.info}</span>` : ''}
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-2">Tape (Remaining)</span>
+                                        <span class="font-mono text-base ${config.remaining_input ? 'text-neutral-800' : 'text-neutral-300 italic'} truncate">
+                                            ${config.remaining_input ? config.remaining_input : 'λ (empty)'}
+                                        </span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-2">Stack memory</span>
+                                        <div class="flex flex-wrap gap-1.5 items-center">
+                                            ${[...config.stack].reverse().map((s, i) => `
+                                                <span class="stack-item px-3 py-1 ${i===0 ? 'bg-neutral-800 text-white font-medium' : 'bg-white text-neutral-500'} text-xs font-mono rounded-md border border-neutral-200/80 shadow-sm">${s}</span>
+                                            `).join('<span class="text-neutral-300 text-xs">→</span>') || '<span class="text-neutral-400 italic text-sm mt-0.5 font-mono">λ (Empty)</span>'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+
+                        stepBlock.innerHTML = `
+                            <div class="bg-neutral-50/80 px-5 py-3 border-b border-neutral-200/70 flex items-center justify-between">
+                                <h3 class="text-[11px] font-bold text-neutral-500 uppercase tracking-widest">${headerText}</h3>
+                            </div>
+                            <div class="divide-y divide-neutral-100">
+                                ${configsHtml}
+                            </div>
+                        `;
+                        traceOutput.appendChild(stepBlock);
+                    }
+                });
+
+            } catch (error) {
+                traceOutput.innerHTML = `<div class="p-5 bg-rose-50 text-rose-700 font-medium text-sm rounded-xl border border-rose-200/80 shadow-sm flex items-center gap-3"><svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Connection failed. Could not simulate.</div>`;
+            } finally {
+                submitBtn.innerHTML = originalBtnContent;
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+            }
+        });
+    </script>
+</body>
+</html>
