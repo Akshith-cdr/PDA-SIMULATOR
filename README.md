@@ -113,9 +113,9 @@ Contributions are welcome.
 
 ## Contributors
 
-[![Contributors](https://contrib.rocks/image?repo=Akshith-cdr/PDA-SIMULATOR)](https://github.com/Akshith-cdr/PDA-SIMULATOR/graphs/contributors)
+[<img src="https://github.com/Akshith-cdr.png?size=100" width="100" height="100" alt="Akshith-cdr" style="border-radius:50%;" />](https://github.com/Akshith-cdr)
 
-See full list with commit counts: [Contributors-Graphs](https://github.com/Akshith-cdr/PDA-SIMULATOR/graphs/contributors)
+View the full contributors graph (including commit counts): [Contributors Graph](https://github.com/Akshith-cdr/PDA-SIMULATOR/graphs/contributors)
 
 ## Acknowledgment
 
