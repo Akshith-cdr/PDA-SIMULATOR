@@ -129,7 +129,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">String to evaluate</label>
-                        <input type="text" id="input_string" placeholder="e.g., aabb" class="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 placeholder-neutral-400 rounded-xl focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-900 focus:bg-white block p-3.5 sm:p-4 font-mono text-sm transition-colors outline-none">
+                        <input type="text" id="input_string" required placeholder="e.g., aabb" class="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 placeholder-neutral-400 rounded-xl focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-900 focus:bg-white block p-3.5 sm:p-4 font-mono text-sm transition-colors outline-none">
                     </div>
                 </div>
 
@@ -282,7 +282,15 @@
         document.getElementById('pda-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const language = document.getElementById('language').value;
-            const input_string = document.getElementById('input_string').value;
+            const inputField = document.getElementById('input_string');
+            const input_string = inputField.value.trim();
+
+            if (!input_string) {
+                inputField.setCustomValidity('Input string is required');
+                inputField.reportValidity();
+                return;
+            }
+            inputField.setCustomValidity('');
             
             const resultsContainer = document.getElementById('results-container');
             const traceOutput = document.getElementById('trace-output');
@@ -314,6 +322,9 @@
                 });
 
                 const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Simulation failed');
+                }
                 traceOutput.innerHTML = '';
                 
                 data.trace.forEach((step, index) => {
@@ -383,7 +394,8 @@
                 });
 
             } catch (error) {
-                traceOutput.innerHTML = `<div class="p-5 bg-rose-50 text-rose-700 font-medium text-sm rounded-xl border border-rose-200/80 shadow-sm flex items-center gap-3"><svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Connection failed. Could not simulate.</div>`;
+                const errorMessage = (error && error.message) ? error.message : 'Connection failed. Could not simulate.';
+                traceOutput.innerHTML = `<div class="p-5 bg-rose-50 text-rose-700 font-medium text-sm rounded-xl border border-rose-200/80 shadow-sm flex items-center gap-3"><svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${errorMessage}</div>`;
             } finally {
                 submitBtn.innerHTML = originalBtnContent;
                 submitBtn.disabled = false;

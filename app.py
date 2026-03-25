@@ -24,9 +24,14 @@ def index():
 
 @app.route('/simulate', methods=['POST'])
 def simulate():
-    data = request.json
+    data = request.json or {}
     lang_choice = data.get('language')
     input_string = data.get('input_string', '')
+
+    if not isinstance(input_string, str) or not input_string.strip():
+        return jsonify({"error": "Input string is required"}), 400
+
+    input_string = input_string.strip()
 
     if lang_choice not in maps:
         return jsonify({"error": "Invalid language selected"}), 400
