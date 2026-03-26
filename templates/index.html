@@ -170,19 +170,25 @@
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         }
+
+        function getDocumentHeight() {
+            const main = document.querySelector('main');
+            const doc = document.documentElement;
+            if (main) {
+                return Math.max(Math.ceil(main.getBoundingClientRect().bottom + window.scrollY), window.innerHeight);
+            }
+            return Math.max(doc.scrollHeight, doc.clientHeight, window.innerHeight);
+        }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Updated colors: Red, Blue, Green, Yellow
         const colors = ['#ef4444', '#3b82f6', '#10b981', '#eab308'];
 
         class Confetti {
             constructor() {
                 this.x = Math.random() * canvas.width;
-                // Start closer to the top edge so they don't take as long to enter and leave
-                this.y = Math.random() * 200 - 200;
+                this.worldY = Math.random() * 200 - 200;
                 this.size = Math.random() * 8 + 4;
-                // Increased fall speed so the animation finishes faster
                 this.speedY = Math.random() * 6 + 4;
                 this.speedX = Math.random() * 2 - 1;
                 this.color = colors[Math.floor(Math.random() * colors.length)];
@@ -190,13 +196,14 @@
                 this.rotationSpeed = Math.random() * 10 - 5;
             }
             update() {
-                this.y += this.speedY;
+                this.worldY += this.speedY;
                 this.x += this.speedX;
                 this.rotation += this.rotationSpeed;
             }
             draw() {
+                const screenY = this.worldY - window.scrollY;
                 ctx.save();
-                ctx.translate(this.x, this.y);
+                ctx.translate(this.x, screenY);
                 ctx.rotate(this.rotation * Math.PI / 180);
                 ctx.fillStyle = this.color;
                 ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
@@ -207,9 +214,9 @@
         function spawnConfetti() {
             confettis = [];
             cancelAnimationFrame(confettiAnimationId);
+            resizeCanvas();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Slightly reduced amount of confetti particles
             for (let i = 0; i < 100; i++) {
                 confettis.push(new Confetti());
             }
@@ -219,10 +226,11 @@
         function animateConfetti() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             let active = false;
+            const documentHeight = getDocumentHeight();
             for (let i = 0; i < confettis.length; i++) {
                 confettis[i].update();
                 confettis[i].draw();
-                if (confettis[i].y < canvas.height) {
+                if (confettis[i].worldY < documentHeight) {
                     active = true;
                 }
             }
@@ -338,7 +346,7 @@
                             finalStatus.className = 'px-4 py-1.5 rounded-lg font-mono text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-sm';
                             
                             document.body.classList.add('animate-glow-accept');
-                            spawnConfetti(); // Trigger the confetti drop!
+                            spawnConfetti();
                             
                         } else {
                             finalStatus.innerHTML = '<span class="flex items-center gap-2">Rejected <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></span>';
