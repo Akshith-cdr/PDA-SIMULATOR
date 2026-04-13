@@ -52,11 +52,11 @@ class PDA:
         current_config.append(initial_cfg)
 
         trace.append({
-            "message": "Initial configuration",
+            "message": "Step 1",
             "configs": [initial_cfg.to_dict()]
         })
 
-        step_counter = 1
+        step_counter = 2
 
         while current_config != []:
             new_config = []
@@ -161,9 +161,10 @@ class PDA:
         transitions = []
 
         if config.remaining_input:
-            transitions += self.get_transitions(config.state, config.remaining_input[0], config.stack[-1])
+            transitions = self.get_transitions(config.state, config.remaining_input[0], config.stack[-1])
 
-        transitions += self.get_transitions(config.state, "", config.stack[-1])
+        if not transitions:
+            transitions = self.get_transitions(config.state, "", config.stack[-1])
 
         new_configs = []
 

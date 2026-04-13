@@ -43,6 +43,62 @@
         .animate-glow-accept { animation: glow-accept 2.5s ease-out forwards; }
         .animate-glow-reject { animation: glow-reject 2.5s ease-out forwards; }
 
+        @keyframes engine-sweep-rotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .engine-badge {
+            position: relative;
+            isolation: isolate;
+            border-radius: 9999px;
+            padding: 2px;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(23, 23, 23, 0.22), rgba(23, 23, 23, 0.14));
+            box-shadow: 0 8px 18px -14px rgba(23, 23, 23, 0.55), 0 0 0 1px rgba(23, 23, 23, 0.05);
+        }
+
+        .engine-badge > div {
+            position: relative;
+            z-index: 2;
+        }
+
+        .engine-badge::before {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            border-radius: 9999px;
+            background: #f5f5f5;
+            z-index: 0;
+        }
+
+        .engine-badge::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 230%;
+            height: 230%;
+            transform: translate(-50%, -50%) rotate(0deg);
+            transform-origin: center;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                transparent 0deg,
+                transparent 315deg,
+                rgba(255, 255, 255, 0.98) 330deg,
+                rgba(255, 255, 255, 0.22) 344deg,
+                rgba(255, 255, 255, 0.05) 355deg,
+                transparent 360deg
+            );
+            animation: engine-sweep-rotate 1.55s linear infinite;
+            -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.7));
+            z-index: 1;
+            pointer-events: none;
+        }
+
         /* Ensure canvas sits on top but doesn't block clicks */
         #confetti-canvas {
             position: fixed;
@@ -63,8 +119,10 @@
         
         <!-- Header -->
         <header class="text-center mb-10 sm:mb-14">
-            <div class="inline-flex items-center justify-center px-3 py-1 mb-6 rounded-full bg-neutral-100 border border-neutral-200 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-                Simulator Engine
+            <div class="engine-badge inline-flex mb-6">
+                <div class="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+                    Simulator Engine
+                </div>
             </div>
             <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-neutral-900 mb-3 sm:mb-4 leading-tight">Pushdown Automata</h1>
             <p class="text-neutral-500 font-medium max-w-md sm:max-w-lg mx-auto text-base sm:text-lg leading-relaxed">Visualize state configurations and stack manipulations step by step.</p>
@@ -151,8 +209,49 @@
                 </h2>
                 <div id="final-status" class="hidden"></div>
             </div>
+
+            <div id="step-controls" class="hidden mb-6 rounded-2xl border border-neutral-200/80 bg-neutral-950 text-white shadow-lg shadow-neutral-950/10 overflow-hidden">
+                <div class="flex flex-col gap-4 p-4 sm:p-5 bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-800 border-b border-white/10">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                            <p class="text-[10px] uppercase tracking-[0.35em] text-neutral-400 font-bold">Step Control</p>
+                            <p class="mt-1 text-sm text-neutral-300">Debugger-style navigation through the PDA trace.</p>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs font-semibold">
+                            <span id="step-state-badge" class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-neutral-200">
+                                <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+                                Running
+                            </span>
+                            <span id="step-counter" class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1.5 font-mono text-neutral-200">0 / 0</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <button id="previous-step-btn" type="button" class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-white/10 hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-40">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                            Previous Step
+                        </button>
+                        <button id="pause-step-btn" type="button" class="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm font-semibold text-amber-100 transition-all duration-200 hover:bg-amber-400/20 hover:border-amber-400/50">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+                            Pause
+                        </button>
+                        <button id="next-step-btn" type="button" class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white px-4 py-3 text-sm font-semibold text-neutral-950 transition-all duration-200 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40">
+                            Next Step
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <label for="trace-speed" class="text-[11px] uppercase tracking-[0.2em] text-neutral-400 font-semibold">Trace Speed</label>
+                        <div class="w-full sm:w-64 flex items-center gap-3">
+                            <span class="text-[11px] text-neutral-500 font-semibold uppercase">Slow</span>
+                            <input id="trace-speed" type="range" min="1" max="100" step="1" value="60" class="w-full accent-neutral-200" />
+                            <span class="text-[11px] text-neutral-300 font-semibold uppercase">Fast</span>
+                        </div>
+                        <span id="trace-speed-label" class="text-xs font-mono text-neutral-300">1.8x</span>
+                    </div>
+                </div>
+            </div>
             
-            <div id="trace-output" class="space-y-5">
+            <div id="trace-output" class="space-y-5 max-h-[65vh] overflow-y-auto pr-1 sm:pr-2 scroll-smooth">
                 <!-- Trace steps will be injected here -->
             </div>
         </div>
@@ -242,12 +341,259 @@
         }
         // ----------------------
 
+        const traceState = {
+            steps: [],
+            activeIndex: 0,
+            isPaused: false,
+            playbackTimer: null,
+            finalEffectPlayed: false,
+            finalStatus: null,
+            playbackDelayMs: 850,
+        };
+
         const languageSelect = document.getElementById('language');
         const languageTrigger = document.getElementById('language-trigger');
         const languageLabel = document.getElementById('language-label');
         const languageMenu = document.getElementById('language-menu');
         const languageChevron = document.getElementById('language-chevron');
         const languageOptions = document.querySelectorAll('.lang-option');
+        const stepControls = document.getElementById('step-controls');
+        const stepCounter = document.getElementById('step-counter');
+        const stepStateBadge = document.getElementById('step-state-badge');
+        const previousStepBtn = document.getElementById('previous-step-btn');
+        const pauseStepBtn = document.getElementById('pause-step-btn');
+        const nextStepBtn = document.getElementById('next-step-btn');
+        const traceSpeedSelect = document.getElementById('trace-speed');
+        const traceSpeedLabel = document.getElementById('trace-speed-label');
+
+        function mapSpeedSliderToDelay(value) {
+            const minDelay = 250;
+            const maxDelay = 1800;
+            const normalized = (Number(value) - 1) / 99;
+            return Math.round(maxDelay - normalized * (maxDelay - minDelay));
+        }
+
+        function updateTraceSpeedLabel(value) {
+            const speedMultiplier = 0.25 + ((Number(value) - 1) / 99) * 2.75;
+            traceSpeedLabel.textContent = `${speedMultiplier.toFixed(1)}x`;
+        }
+
+        function clearTracePlayback() {
+            if (traceState.playbackTimer) {
+                clearInterval(traceState.playbackTimer);
+                traceState.playbackTimer = null;
+            }
+        }
+
+        function setTracePaused(paused) {
+            traceState.isPaused = paused;
+            if (paused) {
+                stepStateBadge.innerHTML = '<span class="h-2 w-2 rounded-full bg-amber-400"></span>Paused';
+                pauseStepBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M10 15V9l5 3-5 3z"/></svg>Resume';
+            } else {
+                stepStateBadge.innerHTML = '<span class="h-2 w-2 rounded-full bg-emerald-400"></span>Running';
+                pauseStepBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>Pause';
+            }
+        }
+
+        function updateStepControls() {
+            const totalSteps = traceState.steps.length;
+            const hasSteps = totalSteps > 0;
+            stepControls.classList.toggle('hidden', !hasSteps);
+            stepCounter.textContent = hasSteps ? `${traceState.activeIndex + 1} / ${totalSteps}` : '0 / 0';
+            previousStepBtn.disabled = !hasSteps || traceState.activeIndex <= 0;
+            nextStepBtn.disabled = !hasSteps || traceState.activeIndex >= totalSteps - 1;
+        }
+
+        function buildTraceStepHtml(step, index, isCurrentStep) {
+            if (!step || !step.configs || step.configs.length === 0) {
+                return `<div class="p-5 bg-white rounded-2xl border ${isCurrentStep ? 'border-neutral-950 shadow-md ring-2 ring-neutral-900/10' : 'border-neutral-200/70 shadow-sm'} text-sm text-neutral-500">
+                    No configuration available for this step.
+                </div>`;
+            }
+
+            const isFinal = Boolean(step.status);
+            const headerText = step.message || (isFinal ? 'End Execution' : `Step ${index + 1}`);
+
+            const configsHtml = step.configs.map((config, idx) => `
+                <div class="p-5 md:p-6 ${idx > 0 ? 'border-t border-neutral-100' : ''} ${config.info ? 'bg-rose-50/30' : ''}">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-2">Internal State</span>
+                            <span class="font-mono text-base bg-neutral-100/80 text-neutral-800 text-center px-4 py-1.5 rounded-lg inline-block w-max border border-neutral-200/80">${config.state}</span>
+                            ${config.info ? `<span class="text-xs text-rose-600 mt-3 font-semibold flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${config.info}</span>` : ''}
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-2">Tape (Remaining)</span>
+                            <span class="font-mono text-base ${config.remaining_input ? 'text-neutral-800' : 'text-neutral-300 italic'} truncate">
+                                ${config.remaining_input ? config.remaining_input : 'λ (empty)'}
+                            </span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-2">Stack memory</span>
+                            <div class="flex flex-wrap gap-1.5 items-center">
+                                ${[...config.stack].reverse().map((s, i) => `
+                                    <span class="stack-item px-3 py-1 ${i===0 ? 'bg-neutral-800 text-white font-medium' : 'bg-white text-neutral-500'} text-xs font-mono rounded-md border border-neutral-200/80 shadow-sm">${s}</span>
+                                `).join('<span class="text-neutral-300 text-xs">→</span>') || '<span class="text-neutral-400 italic text-sm mt-0.5 font-mono">λ (Empty)</span>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            const currentStepAttrs = isCurrentStep ? `id="active-trace-step" data-active-step="true"` : '';
+
+            return `
+                <div ${currentStepAttrs} class="bg-white rounded-2xl border ${isCurrentStep ? 'border-neutral-950 shadow-lg ring-2 ring-neutral-900/10' : isFinal ? 'border-neutral-300 shadow-md' : 'border-neutral-200/70 shadow-sm'} overflow-hidden">
+                    <div class="bg-neutral-50/80 px-5 py-3 border-b border-neutral-200/70 flex items-center justify-between gap-4">
+                        <h3 class="text-[11px] font-bold text-neutral-500 uppercase tracking-widest">${headerText}</h3>
+                        <span class="inline-flex items-center rounded-full border ${isCurrentStep ? 'border-neutral-950 bg-neutral-950 text-white' : 'border-neutral-200 bg-white text-neutral-500'} px-3 py-1 font-mono text-[10px] font-semibold">${index + 1} / ${traceState.steps.length}</span>
+                    </div>
+                    <div class="divide-y divide-neutral-100">
+                        ${configsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderFinalStatus(step) {
+            const finalStatus = document.getElementById('final-status');
+            if (!step || !step.status) {
+                finalStatus.classList.add('hidden');
+                finalStatus.innerHTML = '';
+                return;
+            }
+
+            finalStatus.classList.remove('hidden');
+
+            if (step.status === 'Accepted') {
+                finalStatus.innerHTML = '<span class="flex items-center gap-2">Accepted <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></span>';
+                finalStatus.className = 'px-4 py-1.5 rounded-lg font-mono text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-sm';
+                if (!traceState.finalEffectPlayed) {
+                    document.body.classList.add('animate-glow-accept');
+                    spawnConfetti();
+                    traceState.finalEffectPlayed = true;
+                }
+            } else {
+                finalStatus.innerHTML = '<span class="flex items-center gap-2">Rejected <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></span>';
+                finalStatus.className = 'px-4 py-1.5 rounded-lg font-mono text-sm font-semibold bg-rose-50 text-rose-700 border border-rose-200/80 shadow-sm';
+                if (!traceState.finalEffectPlayed) {
+                    document.body.classList.add('animate-glow-reject');
+                    traceState.finalEffectPlayed = true;
+                }
+            }
+        }
+
+        function renderActiveStep() {
+            const traceOutput = document.getElementById('trace-output');
+            const step = traceState.steps[traceState.activeIndex];
+
+            if (!step) {
+                traceOutput.innerHTML = '<div class="text-center text-neutral-400 font-mono text-sm py-12 animate-pulse">Initializing state machine...</div>';
+                updateStepControls();
+                renderFinalStatus(null);
+                return;
+            }
+
+            traceOutput.innerHTML = traceState.steps
+                .slice(0, traceState.activeIndex + 1)
+                .map((traceStep, index) => buildTraceStepHtml(traceStep, index, index === traceState.activeIndex))
+                .join('');
+
+            const activeStepEl = document.getElementById('active-trace-step');
+            if (activeStepEl) {
+                activeStepEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            updateStepControls();
+
+            const atLastStep = traceState.activeIndex === traceState.steps.length - 1;
+            if (atLastStep && traceState.finalStatus) {
+                renderFinalStatus({ status: traceState.finalStatus });
+            } else {
+                renderFinalStatus(null);
+            }
+        }
+
+        function startTracePlayback() {
+            if (!traceState.steps.length) {
+                return;
+            }
+
+            clearTracePlayback();
+            setTracePaused(false);
+
+            traceState.playbackTimer = setInterval(() => {
+                if (traceState.activeIndex >= traceState.steps.length - 1) {
+                    clearTracePlayback();
+                    setTracePaused(true);
+                    return;
+                }
+
+                traceState.activeIndex += 1;
+                renderActiveStep();
+            }, traceState.playbackDelayMs);
+        }
+
+        function pauseTracePlayback() {
+            clearTracePlayback();
+            setTracePaused(true);
+        }
+
+        previousStepBtn.addEventListener('click', () => {
+            if (!traceState.steps.length) {
+                return;
+            }
+
+            pauseTracePlayback();
+            traceState.activeIndex = Math.max(0, traceState.activeIndex - 1);
+            renderActiveStep();
+        });
+
+        nextStepBtn.addEventListener('click', () => {
+            if (!traceState.steps.length) {
+                return;
+            }
+
+            pauseTracePlayback();
+            traceState.activeIndex = Math.min(traceState.steps.length - 1, traceState.activeIndex + 1);
+            renderActiveStep();
+        });
+
+        pauseStepBtn.addEventListener('click', () => {
+            if (!traceState.steps.length) {
+                return;
+            }
+
+            if (traceState.isPaused && traceState.activeIndex < traceState.steps.length - 1) {
+                startTracePlayback();
+                return;
+            }
+
+            pauseTracePlayback();
+        });
+
+        traceSpeedSelect.addEventListener('change', () => {
+            const selectedSpeed = Number(traceSpeedSelect.value);
+            if (Number.isFinite(selectedSpeed)) {
+                traceState.playbackDelayMs = mapSpeedSliderToDelay(selectedSpeed);
+            }
+
+            updateTraceSpeedLabel(traceSpeedSelect.value);
+
+            // Apply new speed immediately if playback is running.
+            if (!traceState.isPaused && traceState.steps.length && traceState.activeIndex < traceState.steps.length - 1) {
+                startTracePlayback();
+            }
+        });
+
+        traceSpeedSelect.addEventListener('input', () => {
+            const selectedSpeed = Number(traceSpeedSelect.value);
+            if (Number.isFinite(selectedSpeed)) {
+                traceState.playbackDelayMs = mapSpeedSliderToDelay(selectedSpeed);
+            }
+            updateTraceSpeedLabel(traceSpeedSelect.value);
+        });
 
         function closeLanguageMenu() {
             languageMenu.classList.add('hidden');
@@ -306,6 +652,15 @@
             const submitBtn = document.querySelector('button[type="submit"]');
             const originalBtnContent = submitBtn.innerHTML;
 
+            clearTracePlayback();
+            traceState.steps = [];
+            traceState.activeIndex = 0;
+            traceState.finalEffectPlayed = false;
+            traceState.finalStatus = null;
+            setTracePaused(false);
+            updateStepControls();
+            renderFinalStatus(null);
+
             // Clear states
             document.body.classList.remove('animate-glow-accept', 'animate-glow-reject');
             cancelAnimationFrame(confettiAnimationId);
@@ -333,77 +688,27 @@
                 if (!response.ok) {
                     throw new Error(data.error || 'Simulation failed');
                 }
-                traceOutput.innerHTML = '';
-                
-                data.trace.forEach((step, index) => {
-                    if (step.status) {
-                        finalStatus.classList.remove('hidden');
-                        
-                        void document.body.offsetWidth;
+                const fullTrace = Array.isArray(data.trace) ? data.trace : [];
+                const statusEntry = [...fullTrace].reverse().find((entry) => entry && entry.status);
 
-                        if (step.status === 'Accepted') {
-                            finalStatus.innerHTML = '<span class="flex items-center gap-2">Accepted <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></span>';
-                            finalStatus.className = 'px-4 py-1.5 rounded-lg font-mono text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-sm';
-                            
-                            document.body.classList.add('animate-glow-accept');
-                            spawnConfetti();
-                            
-                        } else {
-                            finalStatus.innerHTML = '<span class="flex items-center gap-2">Rejected <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></span>';
-                            finalStatus.className = 'px-4 py-1.5 rounded-lg font-mono text-sm font-semibold bg-rose-50 text-rose-700 border border-rose-200/80 shadow-sm';
-                            
-                            document.body.classList.add('animate-glow-reject');
-                        }
-                    }
+                traceState.steps = fullTrace.filter((entry) => entry && !entry.status);
+                traceState.finalStatus = statusEntry ? statusEntry.status : null;
+                traceState.activeIndex = 0;
 
-                    if (step.configs && step.configs.length > 0) {
-                        const stepBlock = document.createElement('div');
-                        const isFinal = step.status ? true : false;
-                        stepBlock.className = `bg-white rounded-2xl border ${isFinal ? 'border-neutral-300 shadow-md' : 'border-neutral-200/70 shadow-sm'} overflow-hidden`;
-                        
-                        let headerText = step.message || (isFinal ? `End Execution` : `Step`);
-                        
-                        let configsHtml = step.configs.map((config, idx) => `
-                            <div class="p-5 md:p-6 ${idx > 0 ? 'border-t border-neutral-100' : ''} ${config.info ? 'bg-rose-50/30' : ''}">
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div class="flex flex-col">
-                                        <span class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-2">Internal State</span>
-                                        <span class="font-mono text-base bg-neutral-100/80 text-neutral-800 text-center px-4 py-1.5 rounded-lg inline-block w-max border border-neutral-200/80">${config.state}</span>
-                                        ${config.info ? `<span class="text-xs text-rose-600 mt-3 font-semibold flex items-center gap-1.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${config.info}</span>` : ''}
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <span class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-2">Tape (Remaining)</span>
-                                        <span class="font-mono text-base ${config.remaining_input ? 'text-neutral-800' : 'text-neutral-300 italic'} truncate">
-                                            ${config.remaining_input ? config.remaining_input : 'λ (empty)'}
-                                        </span>
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <span class="text-[10px] text-neutral-400 uppercase font-bold tracking-widest mb-2">Stack memory</span>
-                                        <div class="flex flex-wrap gap-1.5 items-center">
-                                            ${[...config.stack].reverse().map((s, i) => `
-                                                <span class="stack-item px-3 py-1 ${i===0 ? 'bg-neutral-800 text-white font-medium' : 'bg-white text-neutral-500'} text-xs font-mono rounded-md border border-neutral-200/80 shadow-sm">${s}</span>
-                                            `).join('<span class="text-neutral-300 text-xs">→</span>') || '<span class="text-neutral-400 italic text-sm mt-0.5 font-mono">λ (Empty)</span>'}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('');
+                if (!traceState.steps.length) {
+                    traceOutput.innerHTML = '<div class="p-5 bg-white rounded-2xl border border-neutral-200/70 shadow-sm text-sm text-neutral-500">No trace data returned from the simulator.</div>';
+                    updateStepControls();
+                    return;
+                }
 
-                        stepBlock.innerHTML = `
-                            <div class="bg-neutral-50/80 px-5 py-3 border-b border-neutral-200/70 flex items-center justify-between">
-                                <h3 class="text-[11px] font-bold text-neutral-500 uppercase tracking-widest">${headerText}</h3>
-                            </div>
-                            <div class="divide-y divide-neutral-100">
-                                ${configsHtml}
-                            </div>
-                        `;
-                        traceOutput.appendChild(stepBlock);
-                    }
-                });
+                renderActiveStep();
+                startTracePlayback();
 
             } catch (error) {
                 const errorMessage = (error && error.message) ? error.message : 'Connection failed. Could not simulate.';
                 traceOutput.innerHTML = `<div class="p-5 bg-rose-50 text-rose-700 font-medium text-sm rounded-xl border border-rose-200/80 shadow-sm flex items-center gap-3"><svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${errorMessage}</div>`;
+                updateStepControls();
+                renderFinalStatus(null);
             } finally {
                 submitBtn.innerHTML = originalBtnContent;
                 submitBtn.disabled = false;
